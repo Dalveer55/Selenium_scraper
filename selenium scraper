@@ -1,0 +1,670 @@
+from concurrent.futures import ThreadPoolExecutor
+from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
+import requests
+import pandas as pd
+import logging
+import os
+from selenium import webdriver
+
+class bidsync_scraper:
+    def __init__(self):
+        self.retry = 5
+        self.master_data = None
+        self.session_value=None
+        url_alpha='https://www.bidsync.com/bidsync-app-web/shared/shared/searchResults.xhtml'
+        
+        result_alpha = requests.get(url_alpha, verify=False)
+        self.jsonid=result_alpha.cookies['JSESSIONID']
+        self.AWSALB=result_alpha.cookies['AWSALB']
+        self.AWSALBCORS=result_alpha.cookies['AWSALBCORS']
+        soup_alpha= BeautifulSoup(result_alpha.content ,"lxml")
+
+        session_value_raw =soup_alpha.find('input',id='j_id1:javax.faces.ViewState:0')
+        session_value=session_value_raw.get('value')
+        driver_alpha = webdriver.Chrome()
+        driver_alpha.get(url_alpha)
+        # print(driver_alpha.get_cookies())
+        cookie_string = "; ".join([f"{cookie['name']}={cookie['value']}" for cookie in driver_alpha.get_cookies()])
+        temp_cook_data=cookie_string.split(';')
+        for l in temp_cook_data:
+            if '_ga_HV4PTNMLMY=' in l:
+                _ga_HV4PTNMLMY=l
+                print(_ga_HV4PTNMLMY)
+            elif "_gid=" in l:  
+                _gid=l
+                print(_gid)
+            elif '_ga=' in l:
+                _ga=l 
+                print(_ga)
+            elif '_gat' in l:
+                _gat =l
+                print(_gat)   
+            else:
+                pass      
+        
+
+    def step_one(self,y): 
+        page_data={
+                'bid_number':[],
+                'title':[],
+                'url':[],
+                'agency':[],
+                'location':[],
+                'end_date':[],
+                'bid_end':[],
+                'tab':[],
+            }
+        payload={
+            'javax.faces.partial.ajax': 'true',
+            'javax.faces.source: elasticBidSearchForm':'bidSearchParametersComponent:linksBidSearchResults',
+            'javax.faces.partial.execute': 'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults',
+            'javax.faces.partial.render': 'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults',
+            # 'javax.faces.source: elasticBidSearchForm:bidSearchParametersComponent':'linksPlusBidSearchResults',
+            # 'javax.faces.partial.execute: elasticBidSearchForm:bidSearchParametersComponent':'linksPlusBidSearchResults',
+            # 'javax.faces.partial.render: elasticBidSearchForm:bidSearchParametersComponent':'linksPlusBidSearchResults',
+            'javax.faces.behavior.event': 'page',
+            'javax.faces.partial.event': 'page',
+            'elasticBidSearchForm:bidSearchParametersComponent:linksPlusBidSearchResults_first': '59040',
+            'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults_pagination': 'true',
+            'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults_first':y,
+            'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults_rows': '10',
+            'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults_encodeFeature': 'true',
+            # 'javax.faces.source: elasticBidSearchForm:bidSearchParametersComponent':'j_idt786',
+            # 'javax.faces.partial.execute: elasticBidSearchForm:bidSearchParametersComponent':'j_idt786',
+            # 'javax.faces.partial.render: elasticBidSearchForm:bidSearchParametersComponent':'statesSection',
+            # 'elasticBidSearchForm:bidSearchParametersComponent:j_idt786: elasticBidSearchForm:bidSearchParametersComponent':'j_idt786',
+            'elasticBidSearchForm': 'elasticBidSearchForm',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt611': '',
+            'elasticBidSearchForm:bidSearchParametersComponent:dateRangeButtons1': 'pre_set_daterange',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt723': 'CURRENT_BIDS',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt761': 'NIGP',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '1',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '2',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '3',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '4',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '5',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '6',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '7',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '8',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '120081',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '9',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '10',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '11',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '12',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '236961',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '13',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '14',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '15',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '16',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '17',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '18',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '19',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '20',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '21',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '22',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '23',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '24',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '25',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '26',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '27',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '28',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '29',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '30',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '1',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '2',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '3',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '4',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '5',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '6',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '7',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '8',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '9',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '10',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '11',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '12',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '13',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '14',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '15',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '16',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '17',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '18',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '19',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '20',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '21',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '22',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '23',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '24',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '25',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '26',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '27',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '28',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '29',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt767': '30',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '31',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '32',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '33',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '34',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '35',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '36',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '37',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '38',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '39',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '40',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '41',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '42',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '43',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '44',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '45',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '46',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '47',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '48',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '49',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '50',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '51',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4000',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4001',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4002',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4003',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4004',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4005',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4006',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4007',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4008',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4009',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4010',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4011',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4012',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4103',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4111',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4105',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4107',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4109',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4113',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4192',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt783': '4194',
+            'elasticBidSearchForm:bidSearchParametersComponent:j_idt791': '132102',
+            'elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults_rppDD': '10',
+            'elasticBidSearchForm:bidSearchParametersComponent:linksPlusBidSearchResults_rppDD': '10',
+            'javax.faces.ViewState':self.session_value,
+        }  # bidsyn original
+
+        headers = {
+        "authority":"www.bidsync.com",
+        "method":"POST",
+        "path":"/bidsync-app-web/shared/shared/searchResults.xhtml",
+        "scheme":"https",
+        "Accept":"application/xml, text/xml, */*; q=0.01",
+        "Accept-Encoding":"gzip, deflate, br",
+        "Accept-Language":"en-US,en;q=0.9",
+        # "Content-Length":"5951",
+        "Content-Type":'application/x-www-form-urlencoded; charset=UTF-8' ,    
+        "Cookie":'JSESSIONID='+self.jsonid+';'+ self._ga+';'+ self._gid+";"+ self._gat+';'+ self._ga_HV4PTNMLMY+";"+ 'AWSALB='+self.AWSALB+';'+ 'AWSALBCORS='+self.AWSALBCORS,
+        'Faces-Request':'partial/ajax',                                
+        'Origin':'https://www.bidsync.com',
+        'Referer':'https://www.bidsync.com/bidsync-app-web/shared/shared/searchResults.xhtml',
+        "Sec-Ch-Ua":'"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+        "Sec-Ch-Ua-Mobile":'?0',
+        "Sec-Ch-Ua-Platform":"Windows",
+        "Sec-Fetch-Dest":"empty",
+        "Sec-Fetch-Mode":"cors",
+        "Sec-Fetch-Site":"same-origin",
+        "User-Agent":'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        "X-Requested-With":"XMLHttpRequest",
+        }
+        try:
+            url1='https://www.bidsync.com/bidsync-app-web/shared/shared/searchResults.xhtml' # for bidsync original
+            s = requests.Session()
+            result1 = s.post(url1,data=payload,headers=headers, verify=False)
+            soup1= BeautifulSoup(result1.content ,"lxml")
+            
+
+            maindiv=soup1.find('update', id='elasticBidSearchForm:bidSearchParametersComponent:linksBidSearchResults')
+            
+            try:
+                for table_maintd1 in maindiv.find_all('td', role='gridcell')[0::7]:
+                    id=table_maintd1.text
+                    page_data['bid_number'].append(id)
+            except:
+                id=''
+                page_data['bid_number'].append(id)
+            try:
+                for table_maintd2 in maindiv.find_all('td', role='gridcell')[1::7]:
+                    title=table_maintd2.text.strip()
+                    page_data['title'].append(title)
+            except:
+                title=''
+                page_data['title'].append(title)
+            
+            try:
+                for table_maintd2 in maindiv.find_all('td', role='gridcell')[1::7]:
+                    url='https://www.bidsync.com'+table_maintd2.a.get('href')
+                    page_data['url'].append(url) 
+            except:
+                url=''  
+                page_data['url'].append(url)  
+            try:        
+                for table_maintd3 in maindiv.find_all('td', role='gridcell')[2::7]:
+                    agency=table_maintd3.text
+                    page_data['agency'].append(agency)
+            except:
+                agency=''
+                page_data['agency'].append(agency)
+
+            try:
+                for table_maintd4 in maindiv.find_all('td', role='gridcell')[3::7]:
+                    location=table_maintd4.text
+                    page_data['location'].append(location)
+            except:
+                location =''       
+                page_data['location'].append(location)
+
+            try:
+                for table_maintd5 in maindiv.find_all('td', role='gridcell')[4::7]:
+                    end_date=table_maintd5.text
+                    page_data['end_date'].append(end_date)
+            except:   
+                end_date=''  
+                page_data['end_date'].append(end_date)
+
+            try:
+                for table_maintd6 in maindiv.find_all('td', role='gridcell')[5::7]:
+                    bid_end=table_maintd6.text
+                    page_data['bid_end'].append(bid_end)
+            except:
+                bid_end=''
+                page_data['bid_end'].append(bid_end)
+            try:
+                for table_maintd7 in maindiv.find_all('td', role='gridcell')[6::7]:
+                    tab=table_maintd7.text
+                    page_data['tab'].append(tab)
+            except:  
+                tab=''   
+                page_data['tab'].append(tab)
+            df_step_one = pd.DataFrame(page_data)  
+        except:
+            page_data['tab'].append('')
+            page_data['bid_end'].append('')
+            page_data['end_date'].append('')
+            page_data['location'].append('')
+            page_data['agency'].append('')
+            page_data['url'].append('')
+            page_data['title'].append('')
+            page_data['bid_number'].append('')
+                      
+        return df_step_one
+
+    def step_two(self,x):
+        data={
+            'date_start':'',
+            'status':'',
+            'department':'',
+            'description':'',
+            'Issuing_agency':'',
+            'duration':'',
+            'renewal':'',
+            'Prices':'',
+            'Regions':'',
+            'bid_end':'',
+            'url':x,
+            'error-data':''
+        } 
+        try:
+            result_beta = requests.get(x, verify=False)
+            beta_jsonid=result_beta.cookies['JSESSIONID']
+            
+            beta_AWSALB=result_beta.cookies['AWSALB']
+            
+            beta_AWSALBCORS=result_beta.cookies['AWSALBCORS']
+            
+            soup_beta= BeautifulSoup(result_beta.content ,"lxml")
+        
+            session_value_raw_beta =soup_beta.find('input',id='j_id1:javax.faces.ViewState:0')
+            session_value_beta=session_value_raw_beta.get('value')
+            
+            # session_value_raw_beta_re=re.search(r"(?<=CDATA\[)[^\]]*)",str(soup_beta)).group()
+            # print(session_value_raw_beta_re)
+            headers = {
+            "authority":"www.bidsync.com",
+            "method":"POST",
+            "path":"/bidsync-app-web/vendor/links/BidDetail.xhtml",
+            "scheme":"https",
+            "Accept":"application/xml, text/xml, */*; q=0.01",
+            "Accept-Encoding":"gzip, deflate, br",
+            "Accept-Language":"en-US,en;q=0.9",
+            # "Content-Length":"718",
+            "Content-Type":'application/x-www-form-urlencoded; charset=UTF-8' ,    
+            "Cookie":'JSESSIONID='+beta_jsonid+';'+ self._ga+';'+ self._gid+";"+ self._gat+';'+ self._ga_HV4PTNMLMY+";"+ 'AWSALB='+beta_AWSALB+';'+ 'AWSALBCORS='+beta_AWSALBCORS,
+            'Faces-Request':'partial/ajax',
+            'Origin':'https://www.bidsync.com',
+            'Referer':x,
+            "Sec-Ch-Ua":'"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+            "Sec-Ch-Ua-Mobile":'?0',
+            "Sec-Ch-Ua-Platform":"Windows",
+            "Sec-Fetch-Dest":"empty",
+            "Sec-Fetch-Mode":"cors",
+            "Sec-Fetch-Site":"same-origin",
+            "User-Agent":'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            "X-Requested-With":"XMLHttpRequest",
+            }
+            payload={
+                'javax.faces.partial.ajax': 'true',
+                'javax.faces.source': 'j_idt214',
+                'javax.faces.partial.execute': 'j_idt214',
+                'javax.faces.partial.render': 'linksBidDetailTabView:bidDetailTabContent bidDetailsTabDialogs linksBidDetailPage newBuyspeedBidPanel',
+                'j_idt214': 'j_idt214',
+                'linksBidDetailForm': 'linksBidDetailForm',
+                'linksBidDetailTabView_activeIndex': '0',
+                'askItemText': '',
+                'askBidText': '',
+                'j_idt2527:userSearchParam': '',
+                'j_idt2527:emailSearchParam': '',
+                'j_idt2527:fnameSearchParam': '',
+                'j_idt2527:lnameSearchParam': '',
+                'j_idt2527:resultsDataTable_selection':'', 
+                'preBidConfAttend_tbl_rppDD': '10',
+                'preBidConfAttend_tbl:j_idt2927:filter': '',
+                'preBidConfAttend_tbl_rppDD': '10',
+                'rsvp_options': 'false',
+                'j_idt2966:verify_password': '',
+                'javax.faces.ViewState':session_value_beta
+            } 
+          
+        
+            
+            rr=requests.post(str(x), headers=headers, data=payload,verify=False)
+            soup2= BeautifulSoup(rr.content,"lxml") 
+            try:      
+                div_date_raw=soup2.find('div', class_='multiContentBoxNoBorder bidDetailContentBox')
+                for div_date in div_date_raw.find_all('span', class_='labelText'):
+                    date_raw = div_date.text.strip()
+                    if 'Bid started:' in date_raw:
+                        date=div_date.find_next_sibling()
+                        date_new=date.text.strip()
+                        data["date_start"]=date_new 
+            except:
+                date_new=''
+                data["date_start"]=date_new  
+            try:      
+                div_date_raw=soup2.find('div', class_='multiContentBoxNoBorder bidDetailContentBox')
+                for div_date in div_date_raw.find_all('span', class_='labelText'):
+                    date_raw = div_date.text.strip()
+                    if 'Bid ends:' in date_raw:
+                        date=div_date.find_next_sibling()
+                        date_new=date.text.strip()
+                        data["bid_end"]=date_new 
+            except:
+                date_new=''
+                data["bid_end"]=date_new      
+            try:      
+                div_date_raw=soup2.find('div', class_='multiContentBoxNoBorder bidDetailContentBox')
+                for div_date in div_date_raw.find_all('span', class_='labelText'):
+                    status_raw_new = div_date.text.strip()
+                    if 'Time left:' in status_raw_new:
+                        status_raw=div_date.find_next_sibling()
+                        status=status_raw.text.strip()
+                        data["status"]=status  
+            except:
+                status='' 
+                data["status"]=status     
+            try:      
+                div_date_raw=soup2.find('div', class_='multiContentBoxNoBorder bidDetailContentBox')
+                for div_date in div_date_raw.find_all('span', class_='labelText'):
+                    department_raw= div_date.text.strip()
+                    if "Department:" in department_raw:
+                        department_raw_new=div_date.find_next_sibling()
+                        department=department_raw_new.text.strip()
+                    data["department"]=department           
+            except:
+                department='' 
+                data["department"]=department  
+                
+            try:
+                des_main_div =soup2.find('div', class_='centerText clear').table.tbody
+                for des_maindiv_raw in des_main_div.find_all('td',class_='rightText boldText bidDetailsTabLabelColumnWidth'):#class_='rightText boldText bidDetailsTabLabelColumnWidth'
+                    raw_tr=des_maindiv_raw.text.strip()
+                    try:
+                        if ("Bid Comments:" in raw_tr) or ('Description'in raw_tr):
+                                description_raw=des_maindiv_raw.find_next_sibling()
+                                description=description_raw.text.strip()
+                                data["description"]=description
+                    except:
+                        description=''
+                        data["description"]=description
+                
+                    try:    
+                        if "Issuing agency:" in raw_tr:
+                                Issuing_agency_raw=des_maindiv_raw.find_next_sibling()
+                                Issuing_agency=Issuing_agency_raw.span.text.strip()
+                                data["Issuing_agency"]=Issuing_agency 
+                    except:
+                        Issuing_agency=''
+                        data["Issuing_agency"]=Issuing_agency
+                    try:    
+                        if "Issuing department" in raw_tr:
+                                Issuing_department_raw=des_maindiv_raw.find_next_sibling()
+                                Issuing_department=Issuing_department_raw.span.text.strip()
+                                data["Issuing_department"]=Issuing_department 
+                    except:    
+                        Issuing_department=''
+                        data["Issuing_department"]=Issuing_department
+                    try:    
+                        if "Contract duration:" in raw_tr:
+                                duration_raw=des_maindiv_raw.find_next_sibling()
+                                duration=duration_raw.text.strip()
+                                data["duration"]=duration 
+                    except:    
+                        duration=''
+                        data["duration"]=duration
+                    try:    
+                        if "Contract renewal:" in raw_tr:
+                                renewal_raw=des_maindiv_raw.find_next_sibling()
+                                renewal=renewal_raw.text.strip()
+                                data["renewal"]=renewal  
+                    except:    
+                        renewal='' 
+                        data["renewal"]=renewal
+                    try:    
+                        if "Prices" in raw_tr:
+                                Prices_raw=des_maindiv_raw.find_next_sibling()
+                                Prices=Prices_raw.text.strip()
+                                data["Prices"]=Prices
+                                
+                    except:    
+                        Prices='' 
+                        data["Prices"]=Prices
+                    try:    
+                        if "Regions:" in raw_tr:
+                                Regions_raw=des_maindiv_raw.find_next_sibling()
+                                Regions=Regions_raw.text.strip() 
+                                data["Regions"]=Regions
+                    except:    
+                        Regions=''  
+                        data["Regions"]=Regions
+            except:
+                try:
+                    des_main_div =soup2.find('div', class_='container').table.tbody
+                    for des_maindiv_raw in des_main_div.find_all('td'):#class_='rightText boldText bidDetailsTabLabelColumnWidth'
+                        raw_tr=des_maindiv_raw.text.strip()
+                        try:
+                            if ("Bid Comments:" in raw_tr) or ('Description'in raw_tr):
+                                    description_raw=des_maindiv_raw.find_next_sibling()
+                                    description=description_raw.text.strip()
+                                    data["description"]=description
+                        except:
+                            description=''
+                            data["description"]=description
+                    
+                        try:    
+                            if "Issuing agency:" in raw_tr:
+                                    Issuing_agency_raw=des_maindiv_raw.find_next_sibling()
+                                    Issuing_agency=Issuing_agency_raw.span.text.strip()
+                                    data["Issuing_agency"]=Issuing_agency 
+                        except:
+                            Issuing_agency=''
+                            data["Issuing_agency"]=Issuing_agency
+                        try:    
+                            if "Issuing department:" in raw_tr:
+                                    Issuing_department_raw=des_maindiv_raw.find_next_sibling()
+                                    Issuing_department=Issuing_department_raw.span.text.strip()
+                                    data["Issuing_department"]=Issuing_department 
+                        except:    
+                            Issuing_department=''
+                            data["Issuing_department"]=Issuing_department
+                        try:    
+                            if "Contract duration:" in raw_tr:
+                                    duration_raw=des_maindiv_raw.find_next_sibling()
+                                    duration=duration_raw.text.strip()
+                                    data["duration"]=duration 
+                        except:    
+                            duration=''
+                            data["duration"]=duration
+                        try:    
+                            if "Contract renewal:" in raw_tr:
+                                    renewal_raw=des_maindiv_raw.find_next_sibling()
+                                    renewal=renewal_raw.text.strip()
+                                    data["renewal"]=renewal  
+                        except:    
+                            renewal='' 
+                            data["renewal"]=renewal
+                        try:    
+                            if "Prices" in raw_tr:
+                                    Prices_raw=des_maindiv_raw.find_next_sibling()
+                                    Prices=Prices_raw.text.strip()
+                                    data["Prices"]=Prices
+                                    
+                        except:    
+                            Prices='' 
+                            data["Prices"]=Prices
+                        try:    
+                            if "Regions:" in raw_tr:
+                                    Regions_raw=des_maindiv_raw.find_next_sibling()
+                                    Regions=Regions_raw.text.strip() 
+                                    data["Regions"]=Regions
+                        except:    
+                            Regions=''  
+                            data["Regions"]=Regions
+                except:
+                    try:
+                        maindiv_exception=soup2.find('div', class_='ui-tabs-panels').table.tbody
+                        for des_maindiv_raw_excep in maindiv_exception.find_all('td'):
+                            raw_tr=des_maindiv_raw_excep.text.strip()
+                            try:
+                                if ("Bid Comments:" in raw_tr) or ('Description'in raw_tr):
+                                        description_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        description=description_raw.text.strip()
+                                        data["description"]=description
+                            except:
+                                description=''
+                                data["description"]=description
+                        
+                            try:    
+                                if "Issuing agency:" in raw_tr:
+                                        Issuing_agency_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        Issuing_agency=Issuing_agency_raw.span.text.strip()
+                                        data["Issuing_agency"]=Issuing_agency 
+                            except:
+                                Issuing_agency=''
+                                data["Issuing_agency"]=Issuing_agency
+                            try:    
+                                if "Issuing department:" in raw_tr:
+                                        Issuing_department_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        Issuing_department=Issuing_department_raw.span.text.strip()
+                                        data["Issuing_department"]=Issuing_department 
+                            except:    
+                                Issuing_department=''
+                                data["Issuing_department"]=Issuing_department
+                            try:    
+                                if "Contract duration:" in raw_tr:
+                                        duration_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        duration=duration_raw.text.strip()
+                                        data["duration"]=duration 
+                            except:    
+                                duration=''
+                                data["duration"]=duration
+                            try:    
+                                if "Contract renewal:" in raw_tr:
+                                        renewal_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        renewal=renewal_raw.text.strip()
+                                        data["renewal"]=renewal  
+                            except:    
+                                renewal='' 
+                                data["renewal"]=renewal
+                            try:    
+                                if "Prices" in raw_tr:
+                                        Prices_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        Prices=Prices_raw.text.strip()
+                                        data["Prices"]=Prices
+                                        
+                            except:    
+                                Prices='' 
+                                data["Prices"]=Prices
+                            try:    
+                                if "Regions:" in raw_tr:
+                                        Regions_raw=des_maindiv_raw_excep.find_next_sibling()
+                                        Regions=Regions_raw.text.strip() 
+                                        data["Regions"]=Regions
+                            except:    
+                                Regions=''  
+                                data["Regions"]=Regions
+                    except:        
+                        data["description"]=''
+                        data["Issuing_agency"]=''
+                        data["duration"]=''
+                        data["renewal"]=''
+                        data["Prices"]=''
+                        data["Regions"]='' 
+        except:    
+            data["description"]=''
+            data["Issuing_agency"]=''
+            data["duration"]=''
+            data["renewal"]=''
+            data["Prices"]=''
+            data["Regions"]='' 
+            data["date_start"]='' 
+            data["bid_end"]=''
+            data["status"]=''
+            data["department"]=''
+            data["error-data"]='error'
+
+        return data    
+    
+
+    def extract_data(self):
+        url = 'https://www.bidsync.com/bidsync-app-web/shared/shared/searchResults.xhtml'
+        result = requests.get(url, verify=False)
+        soup= BeautifulSoup(result.content ,"lxml")
+        
+
+        for last_page_raw  in soup.find_all('span', class_='ui-paginator-current')[0::2]:     # for bid sync
+            last_page=int(last_page_raw.text.split('of')[-1].replace(')','').strip())
+        page_number=[i*10 for i in range(last_page)]
+
+        self.df2=pd.DataFrame()
+        with ThreadPoolExecutor(max_workers=10) as exe:
+            results=list(exe.map(self.step_one,page_number))
+
+        for i in results:
+            self.df2=pd.concat([self.df2,i],ignore_index=True)
+        
+        self.df2.drop_duplicates(inplace=True)
+
+        logging.info(f'Total Projects: {len(self.df2["url"].tolist())}')
+
+        with ThreadPoolExecutor(max_workers=10) as exe:
+            results2=list(exe.map(self.step_two, self.df2)) 
+
+        df3=pd.DataFrame(results2)         
+        self.result22 = self.df2.merge(df3, on='url', how='inner') 
+          
+        self.result22 = self.result22[self.result22["error-data"].str.contains("error") == False]   
+        self.result22.drop(['error-data'],inplace=True,axis=1)
+    
+    def run(self):
+        try:
+            self.extract_data()
+        except Exception as e:
+            logging.error("Error occurred. Closing scraping process", e)
+        finally:
+            self.result22.to_csv('demo_selenium_scraper.csv')
