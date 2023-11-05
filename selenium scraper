@@ -10,7 +10,6 @@ from selenium import webdriver
 
 class bidsync_scraper:
     def __init__(self):
-        self.retry = 5
         self.master_data = None
         self.session_value=None
         url_alpha='https://www.bidsync.com/bidsync-app-web/shared/shared/searchResults.xhtml'
